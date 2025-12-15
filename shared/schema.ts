@@ -73,7 +73,7 @@ export const chats = pgTable("chats", {
   avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  createdBy: integer("created_by").references(() => users.id),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
   maxMembers: integer("max_members").notNull().default(256),
 }, (table) => ({
   updatedAtIdx: index("idx_chats_updated_at").on(table.updatedAt),
@@ -95,7 +95,7 @@ export const chatMembers = pgTable("chat_members", {
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   role: memberRoleEnum("role").notNull().default("member"),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
-  addedBy: integer("added_by").references(() => users.id),
+  addedBy: integer("added_by").references(() => users.id, { onDelete: "set null" }),
 }, (table) => ({
   chatIdIdx: index("idx_chat_members_chat_id").on(table.chatId),
   userIdIdx: index("idx_chat_members_user_id").on(table.userId),
