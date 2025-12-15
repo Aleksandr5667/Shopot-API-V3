@@ -1436,8 +1436,92 @@ export class DatabaseStorage implements IStorage {
       await db.delete(chats).where(inArray(chats.id, privateChatIds));
     }
 
-    // For group chats, remove user from membership but don't delete messages
-    await db.delete(chatMembers).where(eq(chatMembers.userId, userId));
+    // For group chats, handle admin/owner reassignment before removing user
+    const groupChats = await db
+      .select({ chatId: chatMembers.chatId })
+      .from(chatMembers)
+      .innerJoin(chats, eq(chats.id, chatMembers.chatId))
+      .where(
+        and(
+          eq(chatMembers.userId, userId),
+          eq(chats.type, "group")
+        )
+      );
+
+    for (const { chatId } of groupChats) {
+      const [chat] = await db.select().from(chats).where(eq(chats.id, chatId));
+      if (!chat) continue;
+
+      const members = await db.select().from(chatMembers).where(eq(chatMembers.chatId, chatId));
+      const userMember = members.find(m => m.userId === userId);
+      if (!userMember) continue;
+
+      // If only user left, delete the whole chat
+      if (members.length === 1) {
+        // Get media URLs from this chat's messages
+        const chatMessages = await db
+          .select({ mediaUrl: messages.mediaUrl })
+          .from(messages)
+          .where(and(eq(messages.chatId, chatId), sql`${messages.mediaUrl} IS NOT NULL`));
+        chatMessages.forEach(m => {
+          if (m.mediaUrl) mediaUrls.push(m.mediaUrl);
+        });
+
+        await db.delete(messageReceipts)
+          .where(inArray(messageReceipts.messageId, 
+            db.select({ id: messages.id }).from(messages).where(eq(messages.chatId, chatId))
+          ));
+        await db.delete(messages).where(eq(messages.chatId, chatId));
+        await db.delete(chatMembers).where(eq(chatMembers.chatId, chatId));
+        await db.delete(chats).where(eq(chats.id, chatId));
+        continue;
+      }
+
+      // If the creator is leaving, transfer ownership to the oldest member
+      if (chat.createdBy === userId) {
+        const otherMembers = members
+          .filter(m => m.userId !== userId)
+          .sort((a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime());
+        
+        if (otherMembers.length > 0) {
+          const newOwnerId = otherMembers[0].userId;
+          
+          // Transfer ownership
+          await db
+            .update(chats)
+            .set({ createdBy: newOwnerId })
+            .where(eq(chats.id, chatId));
+          
+          // Make new owner an admin
+          await db
+            .update(chatMembers)
+            .set({ role: "admin" })
+            .where(and(eq(chatMembers.chatId, chatId), eq(chatMembers.userId, newOwnerId)));
+        }
+      } else if (userMember.role === "admin") {
+        // If non-creator admin is leaving, check if we need to promote someone
+        const otherAdmins = members.filter(m => m.userId !== userId && m.role === "admin");
+        
+        if (otherAdmins.length === 0) {
+          const otherMembers = members
+            .filter(m => m.userId !== userId)
+            .sort((a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime());
+          
+          if (otherMembers.length > 0) {
+            await db
+              .update(chatMembers)
+              .set({ role: "admin" })
+              .where(and(eq(chatMembers.chatId, chatId), eq(chatMembers.userId, otherMembers[0].userId)));
+          }
+        }
+      }
+
+      // Remove user from this group chat
+      await db.delete(chatMembers).where(and(eq(chatMembers.chatId, chatId), eq(chatMembers.userId, userId)));
+    }
+
+    // Delete user messages from group chats (they sent)
+    await db.delete(messages).where(eq(messages.senderId, userId));
 
     // Delete contacts where user is involved
     await db.delete(contacts).where(
