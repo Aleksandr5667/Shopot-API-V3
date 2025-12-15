@@ -175,9 +175,21 @@ export async function registerRoutes(
       }
 
       const user = await storage.createUser(validation.data);
-      const token = generateToken({ userId: user.id, email: user.email });
+      
+      // Send verification email instead of returning token
+      const code = generateVerificationCode();
+      await storage.createVerificationCode(user.email, code, "email_verification");
+      const sent = await sendVerificationEmail(user.email, code);
+      
+      if (!sent) {
+        console.error("Failed to send verification email to:", user.email);
+      }
 
-      return sendSuccess(res, { user, token }, 201);
+      // Don't return token - require email verification first
+      return sendSuccess(res, { 
+        user, 
+        message: "Регистрация успешна. Проверьте email для подтверждения." 
+      }, 201);
     } catch (error) {
       console.error("Register error:", error);
       return sendError(res, "Ошибка сервера", 500);
@@ -225,6 +237,11 @@ export async function registerRoutes(
       const user = await storage.getUserByEmail(email);
       if (!user) {
         return sendError(res, "Пользователь не найден", 404);
+      }
+
+      // Check if email is verified
+      if (!user.emailVerified) {
+        return sendError(res, "Email не подтверждён. Проверьте почту или запросите код повторно.", 403);
       }
 
       const isValidPassword = await bcrypt.compare(password, user.passwordHash);
@@ -319,7 +336,9 @@ export async function registerRoutes(
 
       const { email, code } = validation.data;
 
+      // Check email_verification type
       const verificationCode = await storage.getValidVerificationCode(email, code, "email_verification");
+      
       if (!verificationCode) {
         return sendError(res, "Неверный или истёкший код");
       }
@@ -327,11 +346,22 @@ export async function registerRoutes(
       await storage.markVerificationCodeUsed(verificationCode.id);
 
       const user = await storage.getUserByEmail(email);
-      if (user) {
-        await storage.markEmailVerified(user.id);
+      if (!user) {
+        return sendError(res, "Пользователь не найден", 404);
       }
+      
+      await storage.markEmailVerified(user.id);
+      
+      // Return token after successful verification
+      const token = generateToken({ userId: user.id, email: user.email });
+      const { passwordHash, ...publicUser } = user;
 
-      return sendSuccess(res, { verified: true, message: "Email успешно подтверждён" });
+      return sendSuccess(res, { 
+        verified: true, 
+        message: "Email успешно подтверждён",
+        user: { ...publicUser, emailVerified: new Date() },
+        token 
+      });
     } catch (error) {
       console.error("Verify email error:", error);
       return sendError(res, "Ошибка сервера", 500);
