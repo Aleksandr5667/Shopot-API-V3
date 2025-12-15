@@ -11,8 +11,7 @@ export interface EmailOptions {
 
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
-    // TEMPORARY: Hardcoded for testing - REMOVE after test!
-    const apiKey = "66xz7h1tynh8dk699zmoxui8t1it81esh7f3uxza";
+    const apiKey = process.env.UNISENDER_API_KEY;
     
     if (!apiKey) {
       console.error("[emailService] UNISENDER_API_KEY not configured");
