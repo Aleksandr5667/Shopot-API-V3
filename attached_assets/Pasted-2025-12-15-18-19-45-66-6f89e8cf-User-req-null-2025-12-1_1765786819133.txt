@@ -1,0 +1,156 @@
+2025-12-15 18:19:45.66
+6f89e8cf
+User
+_req: null,
+2025-12-15 18:19:45.66
+6f89e8cf
+User
+_socket: null,
+2025-12-15 18:19:45.66
+6f89e8cf
+User
+_events: [Object: null prototype] {
+2025-12-15 18:19:45.66
+6f89e8cf
+User
+_closeFrameReceived: false,
+2025-12-15 18:19:45.66
+6f89e8cf
+User
+[Symbol(kCapture)]: false
+2025-12-15 18:19:45.66
+6f89e8cf
+User
+at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+2025-12-15 18:19:45.66
+6f89e8cf
+User
+_protocol: '',
+2025-12-15 18:19:45.66
+6f89e8cf
+User
+open: [Function]
+2025-12-15 18:19:45.66
+6f89e8cf
+User
+[Symbol(kError)]: Error: getaddrinfo EAI_AGAIN helium
+2025-12-15 18:19:45.66
+6f89e8cf
+User
+[Symbol(kMessage)]: 'getaddrinfo EAI_AGAIN helium'
+2025-12-15 18:19:45.66
+6f89e8cf
+User
+8:19:45 AM [express] POST /api/auth/register 500 in 40ms
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_receiver: null,
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+[Symbol(kMessage)]: 'getaddrinfo EAI_AGAIN helium'
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+message: [Function],
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_maxListeners: undefined,
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+},
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_sender: null,
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_closeFrameSent: false,
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+error: [Function],
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+Register error: js {
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_autoPong: true,
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_readyState: 3,
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_eventsCount: 4,
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_errorEmitted: true,
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_protocol: '',
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_closeFrameReceived: false,
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+[Symbol(kTarget)]: t {
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_closeTimer: null,
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+open: [Function]
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_bufferedAmount: 0,
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_binaryType: 'arraybuffer',
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_paused: false,
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_closeCode: 1006,
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+close: [Function],
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+syscall: 'getaddrinfo',
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_events: [Object: null prototype] {
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_extensions: {},
+2025-12-15 18:19:47.05
+6f89e8cf
+User
+_closeMessage: ,
+2025-12-15 18:19:48.39
+6f89e8cf
+User
+error: [Function],
