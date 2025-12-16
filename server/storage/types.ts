@@ -103,6 +103,8 @@ export interface IStorage {
   markChatRead(chatId: number, userId: number): Promise<void>;
   savePushToken(userId: number, token: string): Promise<void>;
   removePushToken(userId: number): Promise<void>;
+  getPushToken(userId: number): Promise<string | null>;
+  getUnreadMessagesCount(userId: number): Promise<number>;
   
   getPrivateChatPartnerIds(userId: number): Promise<number[]>;
   deleteUserAccount(userId: number): Promise<{ deleted: boolean; mediaUrls: string[] }>;

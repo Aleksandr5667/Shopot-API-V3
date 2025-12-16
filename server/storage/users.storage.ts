@@ -78,3 +78,8 @@ export async function removePushToken(userId: number): Promise<void> {
     .set({ pushToken: null })
     .where(eq(users.id, userId));
 }
+
+export async function getPushToken(userId: number): Promise<string | null> {
+  const [user] = await db.select({ pushToken: users.pushToken }).from(users).where(eq(users.id, userId));
+  return user?.pushToken || null;
+}

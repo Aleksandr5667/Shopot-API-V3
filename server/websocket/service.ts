@@ -5,6 +5,7 @@ import { storage } from "../storage/index";
 import type { MessageWithReply } from "@shared/schema";
 import type { AuthenticatedWebSocket, WSMessage } from "./types";
 import { cleanupUserTypingStatus, verifyMembership } from "./handlers";
+import { pushNotificationService } from "../pushNotificationService";
 
 export class WebSocketService {
   private wss: WebSocketServer;
@@ -261,12 +262,15 @@ export class WebSocketService {
     try {
       const chatMembers = await storage.getChatMemberIds(message.chatId);
       const onlineRecipients: number[] = [];
+      const offlineRecipients: number[] = [];
       
       for (const memberId of chatMembers) {
         if (memberId !== message.senderId) {
           const isOnline = this.isUserOnline(memberId);
           if (isOnline) {
             onlineRecipients.push(memberId);
+          } else {
+            offlineRecipients.push(memberId);
           }
           this.sendToUser(memberId, {
             type: "new_message",
@@ -289,6 +293,32 @@ export class WebSocketService {
             deliveredTo,
           },
         });
+      }
+      
+      if (offlineRecipients.length > 0) {
+        const sender = await storage.getUserById(message.senderId);
+        const senderName = sender?.displayName || 'Новое сообщение';
+        const messageText = message.type === 'text' 
+          ? (message.content || '') 
+          : message.type === 'image' 
+            ? 'Изображение' 
+            : message.type === 'video'
+              ? 'Видео'
+              : message.type === 'voice'
+                ? 'Голосовое сообщение'
+                : 'Сообщение';
+        
+        for (const recipientId of offlineRecipients) {
+          pushNotificationService.sendNewMessageNotification(
+            recipientId,
+            message.senderId,
+            senderName,
+            messageText,
+            message.chatId
+          ).catch(err => {
+            console.error(`[websocket] Failed to send push to user ${recipientId}:`, err);
+          });
+        }
       }
     } catch (error) {
       console.error("[websocket] Error in notifyNewMessage:", error);

@@ -414,3 +414,27 @@ export async function markChatRead(chatId: number, userId: number): Promise<void
     }
   }
 }
+
+export async function getUnreadMessagesCount(userId: number): Promise<number> {
+  const userChats = await db
+    .select({ chatId: chatMembers.chatId })
+    .from(chatMembers)
+    .where(eq(chatMembers.userId, userId));
+  
+  if (userChats.length === 0) return 0;
+
+  const chatIds = userChats.map(c => c.chatId);
+  
+  const unreadMessages = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(
+      and(
+        inArray(messages.chatId, chatIds),
+        not(eq(messages.senderId, userId)),
+        sql`NOT (${messages.readBy} @> ARRAY[${userId}]::integer[])`
+      )
+    );
+  
+  return unreadMessages.length;
+}

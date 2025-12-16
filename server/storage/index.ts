@@ -69,6 +69,14 @@ export class DatabaseStorage implements IStorage {
     return usersStorage.removePushToken(userId);
   }
 
+  async getPushToken(userId: number): Promise<string | null> {
+    return usersStorage.getPushToken(userId);
+  }
+
+  async getUnreadMessagesCount(userId: number): Promise<number> {
+    return messagesStorage.getUnreadMessagesCount(userId);
+  }
+
   // Contacts
   async getContacts(userId: number): Promise<(Contact & { contactUser: UserPublic })[]> {
     return contactsStorage.getContacts(userId);
