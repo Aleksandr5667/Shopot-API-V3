@@ -1,24 +1,15 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { Server } from "http";
-import { verifyToken, JwtPayload } from "./auth";
-import { storage } from "./storage/index";
+import { verifyToken } from "../auth";
+import { storage } from "../storage/index";
 import type { MessageWithReply } from "@shared/schema";
+import type { AuthenticatedWebSocket, WSMessage } from "./types";
+import { cleanupUserTypingStatus, verifyMembership } from "./handlers";
 
-interface AuthenticatedWebSocket extends WebSocket {
-  userId?: number;
-  isAlive?: boolean;
-  typingTimeouts?: Map<number, NodeJS.Timeout>; // chatId -> timeout for auto-stop typing
-}
-
-interface WSMessage {
-  type: string;
-  payload: any;
-}
-
-class WebSocketService {
+export class WebSocketService {
   private wss: WebSocketServer;
   private clients: Map<number, Set<AuthenticatedWebSocket>> = new Map();
-  private typingUsers: Map<number, Set<number>> = new Map(); // chatId -> Set<userId>
+  private typingUsers: Map<number, Set<number>> = new Map();
 
   constructor(server: Server) {
     this.wss = new WebSocketServer({ server, path: "/ws" });
@@ -45,17 +36,13 @@ class WebSocketService {
       ws.userId = payload.userId;
       ws.isAlive = true;
 
-      // Add to clients map
       if (!this.clients.has(payload.userId)) {
         this.clients.set(payload.userId, new Set());
       }
       this.clients.get(payload.userId)!.add(ws);
 
-      // Update last seen and notify presence
       await storage.updateLastSeen(payload.userId);
       this.broadcastPresence(payload.userId, true);
-
-      // Mark undelivered messages as delivered and notify senders
       await this.markMessagesAsDelivered(payload.userId);
 
       console.log(`[websocket] User ${payload.userId} connected`);
@@ -75,14 +62,12 @@ class WebSocketService {
 
       ws.on("close", async () => {
         if (ws.userId) {
-          // Cleanup typing timeouts to prevent memory leaks
           if (ws.typingTimeouts) {
             ws.typingTimeouts.forEach((timeout) => clearTimeout(timeout));
             ws.typingTimeouts.clear();
           }
           
-          // Cleanup typing status from all chats
-          this.cleanupUserTypingStatus(ws.userId);
+          cleanupUserTypingStatus(ws.userId, this.typingUsers, this.broadcastToChat.bind(this));
           
           const userSockets = this.clients.get(ws.userId);
           if (userSockets) {
@@ -101,7 +86,6 @@ class WebSocketService {
         console.error("[websocket] Connection error:", error);
       });
 
-      // Send connected confirmation
       this.sendToClient(ws, {
         type: "connected",
         payload: { userId: payload.userId },
@@ -137,19 +121,8 @@ class WebSocketService {
     }
   }
 
-  // Security: Verify user is a member of the chat
-  private async verifyMembership(userId: number, chatId: number): Promise<boolean> {
-    try {
-      const memberIds = await storage.getChatMemberIds(chatId);
-      return memberIds.includes(userId);
-    } catch {
-      return false;
-    }
-  }
-
   private async handleTypingStart(ws: AuthenticatedWebSocket, userId: number, chatId: number) {
-    // Security: Verify user is a member of the chat
-    if (!await this.verifyMembership(userId, chatId)) {
+    if (!await verifyMembership(userId, chatId)) {
       console.warn(`[websocket] Security: User ${userId} attempted typing in chat ${chatId} without membership`);
       return;
     }
@@ -161,25 +134,18 @@ class WebSocketService {
 
     this.broadcastToChat(chatId, {
       type: "typing",
-      payload: {
-        chatId,
-        userId,
-        isTyping: true,
-      },
+      payload: { chatId, userId, isTyping: true },
     }, userId);
 
-    // Initialize typing timeouts map if needed
     if (!ws.typingTimeouts) {
       ws.typingTimeouts = new Map();
     }
 
-    // Clear existing timeout for this chat if any
     const existingTimeout = ws.typingTimeouts.get(chatId);
     if (existingTimeout) {
       clearTimeout(existingTimeout);
     }
 
-    // Auto-stop typing after 5 seconds with proper cleanup
     const timeout = setTimeout(() => {
       ws.typingTimeouts?.delete(chatId);
       void this.handleTypingStop(ws, userId, chatId).catch((error) => {
@@ -191,12 +157,10 @@ class WebSocketService {
   }
 
   private async handleTypingStop(ws: AuthenticatedWebSocket, userId: number, chatId: number) {
-    // Security: Verify user is a member of the chat
-    if (!await this.verifyMembership(userId, chatId)) {
+    if (!await verifyMembership(userId, chatId)) {
       return;
     }
 
-    // Clear timeout if manually stopped
     if (ws.typingTimeouts) {
       const timeout = ws.typingTimeouts.get(chatId);
       if (timeout) {
@@ -208,7 +172,6 @@ class WebSocketService {
     const chatTyping = this.typingUsers.get(chatId);
     if (chatTyping) {
       chatTyping.delete(userId);
-      // Cleanup empty chat entries to prevent memory buildup
       if (chatTyping.size === 0) {
         this.typingUsers.delete(chatId);
       }
@@ -216,35 +179,8 @@ class WebSocketService {
 
     this.broadcastToChat(chatId, {
       type: "typing",
-      payload: {
-        chatId,
-        userId,
-        isTyping: false,
-      },
+      payload: { chatId, userId, isTyping: false },
     }, userId);
-  }
-
-  // Cleanup user typing status from all chats (called on disconnect)
-  private cleanupUserTypingStatus(userId: number) {
-    this.typingUsers.forEach((typingSet, chatId) => {
-      if (typingSet.has(userId)) {
-        typingSet.delete(userId);
-        // Notify other users that this user stopped typing
-        this.broadcastToChat(chatId, {
-          type: "typing",
-          payload: {
-            chatId,
-            userId,
-            isTyping: false,
-          },
-        }, userId);
-        
-        // Remove empty entries
-        if (typingSet.size === 0) {
-          this.typingUsers.delete(chatId);
-        }
-      }
-    });
   }
 
   private sendToClient(ws: WebSocket, message: WSMessage) {
@@ -276,7 +212,6 @@ class WebSocketService {
   }
 
   async broadcastPresence(userId: number, isOnline: boolean) {
-    // Only broadcast presence to users who share at least one chat with this user
     try {
       const relatedUserIds = await storage.getRelatedUserIds(userId);
       relatedUserIds.forEach((relatedUserId) => {
@@ -304,7 +239,6 @@ class WebSocketService {
       const deliveredMessages = await storage.markUserMessagesAsDelivered(userId);
       
       for (const msg of deliveredMessages) {
-        // Notify sender about delivery
         this.sendToUser(msg.senderId, {
           type: "message_delivered",
           payload: {
@@ -323,13 +257,11 @@ class WebSocketService {
     }
   }
 
-  // Public method to notify about new messages
   async notifyNewMessage(message: MessageWithReply) {
     try {
       const chatMembers = await storage.getChatMemberIds(message.chatId);
       const onlineRecipients: number[] = [];
       
-      // Send message to all chat members (except sender) and track who's online
       for (const memberId of chatMembers) {
         if (memberId !== message.senderId) {
           const isOnline = this.isUserOnline(memberId);
@@ -343,13 +275,11 @@ class WebSocketService {
         }
       }
       
-      // Mark message as delivered for online recipients and notify sender
       if (onlineRecipients.length > 0) {
         for (const recipientId of onlineRecipients) {
           await storage.markMessageDelivered(message.id, recipientId);
         }
         
-        // Get updated deliveredTo list and notify sender
         const deliveredTo = await storage.getMessageDeliveredTo(message.id);
         this.sendToUser(message.senderId, {
           type: "message_delivered",
@@ -365,37 +295,25 @@ class WebSocketService {
     }
   }
 
-  // Public method to notify about message updates (edit/delete)
   async notifyMessageUpdate(chatId: number, messageId: number, update: any) {
     this.broadcastToChat(chatId, {
       type: "message_updated",
-      payload: {
-        messageId,
-        chatId,
-        ...update,
-      },
+      payload: { messageId, chatId, ...update },
     });
   }
 
-  // Public method to notify about message deletion
   async notifyMessageDeleted(chatId: number, messageId: number) {
     this.broadcastToChat(chatId, {
       type: "message_deleted",
-      payload: {
-        messageId,
-        chatId,
-      },
+      payload: { messageId, chatId },
     });
   }
 
-  // Public method to notify about chat deletion
   notifyChatDeleted(chatId: number, memberIds: number[]) {
     memberIds.forEach((memberId) => {
       this.sendToUser(memberId, {
         type: "chat_deleted",
-        payload: {
-          chatId,
-        },
+        payload: { chatId },
       });
     });
     console.log(`[websocket] Notified ${memberIds.length} users about chat ${chatId} deletion`);
@@ -428,7 +346,6 @@ class WebSocketService {
         payload: { chatId, userId, removedBy },
       });
     });
-    // Also notify the removed user
     this.sendToUser(userId, {
       type: "removed_from_chat",
       payload: { chatId, removedBy },
@@ -463,7 +380,6 @@ class WebSocketService {
         payload: { chatId, previousOwnerId, newOwnerId },
       });
     });
-    // Also notify the previous owner who just left
     this.sendToUser(previousOwnerId, {
       type: "group_owner_changed",
       payload: { chatId, previousOwnerId, newOwnerId },
@@ -471,7 +387,6 @@ class WebSocketService {
     console.log(`[websocket] Notified about ownership transfer in chat ${chatId} from user ${previousOwnerId} to user ${newOwnerId}`);
   }
 
-  // Notify all conversation partners when a user deletes their account
   notifyUserDeleted(userId: number, conversationPartnerIds: number[]) {
     conversationPartnerIds.forEach((partnerId) => {
       this.sendToUser(partnerId, {
@@ -482,7 +397,6 @@ class WebSocketService {
     console.log(`[websocket] Notified ${conversationPartnerIds.length} users about user ${userId} deletion`);
   }
 
-  // Get online users
   getOnlineUsers(): number[] {
     return Array.from(this.clients.keys());
   }
@@ -490,15 +404,4 @@ class WebSocketService {
   isUserOnline(userId: number): boolean {
     return this.clients.has(userId) && this.clients.get(userId)!.size > 0;
   }
-}
-
-let wsService: WebSocketService | null = null;
-
-export function initWebSocket(server: Server): WebSocketService {
-  wsService = new WebSocketService(server);
-  return wsService;
-}
-
-export function getWebSocketService(): WebSocketService | null {
-  return wsService;
 }

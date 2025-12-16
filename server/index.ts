@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes/index";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { initWebSocket } from "./websocket";
+import { initWebSocket } from "./websocket/index";
 
 const app = express();
 const httpServer = createServer(app);

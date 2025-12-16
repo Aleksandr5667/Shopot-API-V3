@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { getWebSocketService } from "../websocket";
+import { getWebSocketService } from "../websocket/index";
 import { sendSuccess } from "./utils";
 
 export const debugRouter = Router();

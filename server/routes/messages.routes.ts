@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { storage } from "../storage/index";
 import { authenticateToken } from "../auth";
-import { getWebSocketService } from "../websocket";
+import { getWebSocketService } from "../websocket/index";
 import { ObjectStorageService } from "../objectStorage";
 import { insertMessageSchema } from "@shared/schema";
 import { sendSuccess, sendError, parseLimit, parseCursor, messagesCursorSchema } from "./utils";
