@@ -153,7 +153,17 @@ npm run db:push  # Push schema changes to database
 │       └── components/    # UI components
 ├── server/
 │   ├── index.ts          # Express server entry
-│   ├── routes.ts         # API routes
+│   ├── routes/           # Modular API routes
+│   │   ├── index.ts      # Main router registration
+│   │   ├── auth.routes.ts    # Authentication & verification
+│   │   ├── users.routes.ts   # Profile, search, online status
+│   │   ├── contacts.routes.ts # Contact management
+│   │   ├── chats.routes.ts   # Chat management
+│   │   ├── messages.routes.ts # Message CRUD
+│   │   ├── media.routes.ts   # File uploads
+│   │   ├── debug.routes.ts   # Debug endpoints
+│   │   ├── utils.ts          # Shared response helpers
+│   │   └── limiters.ts       # Rate limiters
 │   ├── storage.ts        # Database storage layer
 │   ├── auth.ts           # JWT authentication
 │   ├── websocket.ts      # WebSocket service
@@ -170,7 +180,15 @@ npm run db:push  # Push schema changes to database
 - `PUBLIC_OBJECT_SEARCH_PATHS` - Object storage public paths
 - `PRIVATE_OBJECT_DIR` - Object storage private directory
 
-## Recent Changes (December 08, 2025)
+## Recent Changes (December 16, 2025)
+- **Modular Routes Architecture**
+  - Refactored monolithic routes.ts (1805 lines) into 9 modular route files
+  - Routes organized by domain: auth, users, contacts, chats, messages, media, debug
+  - Extracted shared utilities (sendSuccess, sendError, pagination, cursor parsing) to utils.ts
+  - Extracted rate limiters to limiters.ts
+  - Better maintainability and allows multiple developers to work on different modules
+
+## Previous Changes (December 08, 2025)
 - **Message Delivery Tracking System**
   - Added `message_receipts` table for tracking message delivery
   - Added `PUT /api/messages/:id/delivered` endpoint for confirming message delivery
