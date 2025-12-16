@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { storage } from "../storage";
+import { storage } from "../storage/index";
 import { authenticateToken } from "../auth";
 import { getWebSocketService } from "../websocket";
 import { ObjectStorageService } from "../objectStorage";

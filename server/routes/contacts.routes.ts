@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { storage } from "../storage";
+import { storage } from "../storage/index";
 import { authenticateToken } from "../auth";
 import { insertContactSchema } from "@shared/schema";
 import { sendSuccess, sendError, parseLimit, parseCursor, contactsCursorSchema } from "./utils";

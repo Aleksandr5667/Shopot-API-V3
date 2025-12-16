@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { Server } from "http";
 import { verifyToken, JwtPayload } from "./auth";
-import { storage } from "./storage";
+import { storage } from "./storage/index";
 import type { MessageWithReply } from "@shared/schema";
 
 interface AuthenticatedWebSocket extends WebSocket {

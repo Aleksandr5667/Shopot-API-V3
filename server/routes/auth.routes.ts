@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import bcrypt from "bcrypt";
-import { storage } from "../storage";
+import { storage } from "../storage/index";
 import { authenticateToken, generateToken } from "../auth";
 import { generateVerificationCode, sendVerificationEmail, sendPasswordResetEmail } from "../emailService";
 import { insertUserSchema, loginSchema } from "@shared/schema";

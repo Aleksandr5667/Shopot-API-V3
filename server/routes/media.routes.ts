@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { storage } from "../storage";
+import { storage } from "../storage/index";
 import { authenticateToken } from "../auth";
 import { ObjectStorageService, ObjectNotFoundError } from "../objectStorage";
 import { sendSuccess, sendError } from "./utils";
