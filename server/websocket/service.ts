@@ -295,7 +295,10 @@ export class WebSocketService {
         });
       }
       
+      console.log(`[websocket] Message ${message.id}: online=${onlineRecipients.length}, offline=${offlineRecipients.length}`);
+      
       if (offlineRecipients.length > 0) {
+        console.log(`[websocket] Sending push notifications to offline users: ${offlineRecipients.join(', ')}`);
         const sender = await storage.getUserById(message.senderId);
         const senderName = sender?.displayName || 'Новое сообщение';
         const messageText = message.type === 'text' 
