@@ -27,13 +27,10 @@ export class PushNotificationService {
     chatId: number
   ): Promise<boolean> {
     try {
-      console.log(`[push] Attempting to send notification to user ${recipientId}`);
       const pushToken = await storage.getPushToken(recipientId);
       if (!pushToken) {
-        console.log(`[push] No push token found for user ${recipientId}`);
         return false;
       }
-      console.log(`[push] Found push token for user ${recipientId}: ${pushToken.substring(0, 30)}...`);
 
       if (!this.isValidExpoPushToken(pushToken)) {
         console.log(`[push] Invalid push token for user ${recipientId}`);
