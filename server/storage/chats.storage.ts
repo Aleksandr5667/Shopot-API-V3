@@ -4,8 +4,22 @@ import {
   type ChatMemberWithUser, type ChatWithMembers
 } from "@shared/schema";
 import { db } from "../db";
-import { eq, and, or, desc, lt, inArray } from "drizzle-orm";
+import { eq, and, or, desc, lt, inArray, not, sql } from "drizzle-orm";
 import { getUserById } from "./users.storage";
+
+export async function getUnreadCount(chatId: number, userId: number): Promise<number> {
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.chatId, chatId),
+        not(eq(messages.senderId, userId)),
+        sql`NOT (${messages.readBy} @> ARRAY[${userId}]::integer[])`
+      )
+    );
+  return Number(result[0]?.count ?? 0);
+}
 
 export async function createChat(
   type: "private" | "group",
@@ -34,7 +48,7 @@ export async function createChat(
   return chat;
 }
 
-export async function getChatsForUser(userId: number): Promise<(Chat & { lastMessage?: Message; members: UserPublic[] })[]> {
+export async function getChatsForUser(userId: number): Promise<(Chat & { lastMessage?: Message; members: UserPublic[]; unreadCount: number })[]> {
   const memberRecords = await db
     .select()
     .from(chatMembers)
@@ -45,7 +59,7 @@ export async function getChatsForUser(userId: number): Promise<(Chat & { lastMes
 
   const chatList = await db.select().from(chats).where(inArray(chats.id, chatIds));
 
-  const result: (Chat & { lastMessage?: Message; members: UserPublic[] })[] = [];
+  const result: (Chat & { lastMessage?: Message; members: UserPublic[]; unreadCount: number })[] = [];
   for (const chat of chatList) {
     const [lastMessage] = await db
       .select()
@@ -65,10 +79,13 @@ export async function getChatsForUser(userId: number): Promise<(Chat & { lastMes
       if (user) memberUsers.push(user);
     }
 
+    const unreadCount = await getUnreadCount(chat.id, userId);
+
     result.push({
       ...chat,
       lastMessage: lastMessage || undefined,
       members: memberUsers,
+      unreadCount,
     });
   }
 
@@ -81,7 +98,7 @@ export async function getChatsForUser(userId: number): Promise<(Chat & { lastMes
   return result;
 }
 
-export async function getChatsForUserPaginated(userId: number, limit: number, cursor?: ChatsCursor): Promise<{ chats: (Chat & { lastMessage?: Message; members: UserPublic[] })[]; pageInfo: PageInfo }> {
+export async function getChatsForUserPaginated(userId: number, limit: number, cursor?: ChatsCursor): Promise<{ chats: (Chat & { lastMessage?: Message; members: UserPublic[]; unreadCount: number })[]; pageInfo: PageInfo }> {
   const memberRecords = await db
     .select()
     .from(chatMembers)
@@ -114,7 +131,7 @@ export async function getChatsForUserPaginated(userId: number, limit: number, cu
   const hasMore = chatList.length > limit;
   const chatsToReturn = hasMore ? chatList.slice(0, limit) : chatList;
 
-  const result: (Chat & { lastMessage?: Message; members: UserPublic[] })[] = [];
+  const result: (Chat & { lastMessage?: Message; members: UserPublic[]; unreadCount: number })[] = [];
   for (const chat of chatsToReturn) {
     const [lastMessage] = await db
       .select()
@@ -134,10 +151,13 @@ export async function getChatsForUserPaginated(userId: number, limit: number, cu
       if (user) memberUsers.push(user);
     }
 
+    const unreadCount = await getUnreadCount(chat.id, userId);
+
     result.push({
       ...chat,
       lastMessage: lastMessage || undefined,
       members: memberUsers,
+      unreadCount,
     });
   }
 
