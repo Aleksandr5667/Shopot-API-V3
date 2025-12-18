@@ -120,6 +120,7 @@ export const messages = pgTable("messages", {
   content: text("content"),
   type: messageTypeEnum("type").notNull().default("text"),
   mediaUrl: text("media_url"),
+  thumbnailUrl: text("thumbnail_url"),
   replyToId: integer("reply_to_id").$type<number | null>().references((): any => messages.id, { onDelete: "set null" }),
   edited: timestamp("edited"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -239,6 +240,7 @@ export const insertMessageSchema = z.object({
   content: z.string().optional().nullable(),
   type: z.enum(["text", "image", "video", "voice", "system"]).optional(),
   mediaUrl: z.string().optional().nullable(),
+  thumbnailUrl: z.string().optional().nullable(),
   replyToId: z.number().int().positive().optional().nullable(),
 });
 

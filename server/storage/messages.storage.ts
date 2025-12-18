@@ -81,6 +81,7 @@ export async function createMessage(chatId: number, senderId: number, data: Inse
       content: data.content,
       type: data.type || "text",
       mediaUrl: data.mediaUrl,
+      thumbnailUrl: data.thumbnailUrl,
       replyToId: validatedReplyToId,
       readBy: [senderId],
     })
