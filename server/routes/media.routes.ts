@@ -57,9 +57,11 @@ mediaRouter.put("/media/finalize", authenticateToken, async (req: Request, res: 
   }
 });
 
+const MAX_FILE_SIZE = 150 * 1024 * 1024; // 150 MB
+
 const initUploadSchemaWithValidation = z.object({
   filename: z.string().min(1, "Имя файла обязательно"),
-  fileSize: z.number().int().positive().max(500 * 1024 * 1024, "Максимальный размер файла 500 МБ"),
+  fileSize: z.number().int().positive().max(MAX_FILE_SIZE, "Максимальный размер файла 150 МБ"),
   mimeType: z.string().min(1, "MIME тип обязателен"),
   category: z.enum(["avatars", "images", "videos", "voice", "files"]).optional(),
 });
