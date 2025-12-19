@@ -180,6 +180,27 @@ npm run db:push  # Push schema changes to database
 - `PUBLIC_OBJECT_SEARCH_PATHS` - Object storage public paths
 - `PRIVATE_OBJECT_DIR` - Object storage private directory
 
+## URL Handling Architecture
+Media files (avatars, images, videos) are stored with **relative paths** in the database (`/objects/users/.../image.jpg`). 
+
+When returning data to the client, the server transforms these to **full URLs** (`https://domain.replit.dev/objects/...`) using utility functions in `server/storage/utils.ts`:
+- `toFullUrl()` - converts relative path to full URL
+- `toPublicUser()` - transforms user avatarUrl
+- `transformMessageUrls()` - transforms message mediaUrl and thumbnailUrl
+- `transformChatUrls()` - transforms chat avatarUrl
+
+This ensures:
+1. Mobile app's CachedImage component receives full URLs for proper caching
+2. URLs work correctly in both development and production environments
+3. No URL duplication issues
+
+## Recent Changes (December 19, 2025)
+- **Full URL Support for Media**
+  - Added URL transformation utilities in `server/storage/utils.ts`
+  - All API responses now return full URLs for media files
+  - Database stores relative paths, transformation happens at read time
+  - Fixes CachedImage loading issues on mobile app
+
 ## Recent Changes (December 16, 2025)
 - **Modular Routes Architecture**
   - Refactored monolithic routes.ts (1805 lines) into 9 modular route files
