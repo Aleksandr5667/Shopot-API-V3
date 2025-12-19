@@ -524,6 +524,35 @@ export class ObjectStorageService {
     console.log(`[objectStorage] Successfully uploaded buffer to: ${objectName}`);
     return `/objects/${objectName}`;
   }
+
+  /**
+   * Normalize media URL to relative path
+   * Converts absolute URLs to relative paths for environment-agnostic storage
+   * - https://dev-domain.replit.dev/objects/users/... -> /objects/users/...
+   * - https://prod-domain.replit.app/objects/users/... -> /objects/users/...
+   * - /objects/users/... -> /objects/users/... (already relative)
+   */
+  normalizeMediaUrl(url: string | null | undefined): string | null {
+    if (!url) return null;
+    
+    // Already relative path
+    if (url.startsWith('/objects/')) {
+      return url;
+    }
+    
+    // Convert absolute URL to relative path
+    try {
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+      if (pathname.startsWith('/objects/')) {
+        return pathname;
+      }
+    } catch {
+      // Not a valid URL, return as-is
+    }
+    
+    return url;
+  }
 }
 
 function parseObjectPath(path: string): {

@@ -36,7 +36,14 @@ messagesRouter.post("/", authenticateToken, async (req: Request, res: Response) 
       return sendError(res, "URL медиафайла обязателен");
     }
 
-    const message = await storage.createMessage(chatId, req.user!.userId, validation.data);
+    // Normalize media URLs to relative paths
+    const messageData = {
+      ...validation.data,
+      mediaUrl: objectStorageService.normalizeMediaUrl(validation.data.mediaUrl),
+      thumbnailUrl: objectStorageService.normalizeMediaUrl(validation.data.thumbnailUrl),
+    };
+
+    const message = await storage.createMessage(chatId, req.user!.userId, messageData);
     
     const wsService = getWebSocketService();
     if (wsService) {
