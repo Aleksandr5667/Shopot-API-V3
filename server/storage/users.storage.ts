@@ -6,10 +6,11 @@ import { toPublicUser } from "./utils";
 
 export async function createUser(data: InsertUser): Promise<UserPublic> {
   const passwordHash = await bcrypt.hash(data.password, 10);
+  const normalizedEmail = data.email.toLowerCase().trim();
   const [user] = await db
     .insert(users)
     .values({
-      email: data.email,
+      email: normalizedEmail,
       passwordHash,
       displayName: data.displayName,
       avatarColor: data.avatarColor || "#3B82F6",
@@ -20,7 +21,8 @@ export async function createUser(data: InsertUser): Promise<UserPublic> {
 }
 
 export async function getUserByEmail(email: string): Promise<User | undefined> {
-  const [user] = await db.select().from(users).where(eq(users.email, email));
+  const normalizedEmail = email.toLowerCase().trim();
+  const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail));
   return user || undefined;
 }
 

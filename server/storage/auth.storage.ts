@@ -5,20 +5,22 @@ import type { VerificationCode, VerificationType } from "./types";
 import { getUserByEmail } from "./users.storage";
 
 export async function createVerificationCode(email: string, code: string, type: VerificationType): Promise<VerificationCode> {
+  const normalizedEmail = email.toLowerCase().trim();
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
   const [verificationCode] = await db
     .insert(verificationCodes)
-    .values({ email, code, type, expiresAt })
+    .values({ email: normalizedEmail, code, type, expiresAt })
     .returning();
   return verificationCode;
 }
 
 export async function getValidVerificationCode(email: string, code: string, type: VerificationType): Promise<VerificationCode | undefined> {
+  const normalizedEmail = email.toLowerCase().trim();
   const [verificationCode] = await db
     .select()
     .from(verificationCodes)
     .where(and(
-      eq(verificationCodes.email, email),
+      eq(verificationCodes.email, normalizedEmail),
       eq(verificationCodes.code, code),
       eq(verificationCodes.type, type),
       gt(verificationCodes.expiresAt, new Date()),
@@ -35,11 +37,12 @@ export async function markVerificationCodeUsed(id: number): Promise<void> {
 }
 
 export async function getLastVerificationCodeTime(email: string, type: VerificationType): Promise<Date | undefined> {
+  const normalizedEmail = email.toLowerCase().trim();
   const [lastCode] = await db
     .select({ createdAt: verificationCodes.createdAt })
     .from(verificationCodes)
     .where(and(
-      eq(verificationCodes.email, email),
+      eq(verificationCodes.email, normalizedEmail),
       eq(verificationCodes.type, type)
     ))
     .orderBy(desc(verificationCodes.createdAt))
@@ -55,10 +58,11 @@ export async function markEmailVerified(userId: number): Promise<void> {
 }
 
 export async function updateUserPassword(email: string, newPasswordHash: string): Promise<boolean> {
+  const normalizedEmail = email.toLowerCase().trim();
   const result = await db
     .update(users)
     .set({ passwordHash: newPasswordHash })
-    .where(eq(users.email, email))
+    .where(eq(users.email, normalizedEmail))
     .returning();
   return result.length > 0;
 }

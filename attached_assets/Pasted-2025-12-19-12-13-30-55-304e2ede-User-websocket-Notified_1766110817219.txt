@@ -1,0 +1,84 @@
+2025-12-19 12:13:30.55
+304e2ede
+User
+[websocket] Notified 2 users about chat 1 deletion
+2025-12-19 12:13:30.55
+304e2ede
+User
+2:13:30 AM [express] DELETE /api/chats/1 200 in 936ms :: {"success":true,"data":{}}
+2025-12-19 12:14:50.07
+304e2ede
+User
+2:14:50 AM [express] DELETE /api/users/push-token 401 in 1ms :: {"success":false,"error":"Токен не предоставлен"}
+2025-12-19 12:14:50.09
+304e2ede
+User
+[websocket] User 1 disconnected
+2025-12-19 12:15:14.11
+304e2ede
+User
+[emailService] Email sent to x-track89@mail.ru, job_id: 1vWQ1S-0002dM-B2Ct
+2025-12-19 12:15:14.11
+304e2ede
+User
+2:15:14 AM [express] POST /api/auth/password-reset/request 200 in 1144ms :: {"success":true,"data":{"message":"Если email зарегистрирован, код будет отправлен"}}
+2025-12-19 12:15:44.54
+304e2ede
+User
+2:15:44 AM [express] GET /api/auth/me 401 in 0ms
+2025-12-19 12:16:11.80
+304e2ede
+User
+2:16:11 AM [express] POST /api/auth/login 200 in 335ms
+2025-12-19 12:16:12.48
+304e2ede
+User
+2:16:12 AM [express] GET /api/users/online 200 in 1ms :: {"success":true,"data":{"userIds":[]}}
+2025-12-19 12:16:12.76
+304e2ede
+User
+2:16:12 AM [express] GET /api/contacts 304 in 42ms :: {"success":true,"data":{"contacts":[],"pageInfo":{"hasMore":false,"nextCursor":null}}}
+2025-12-19 12:16:12.77
+304e2ede
+User
+2:16:12 AM [express] GET /api/chats 200 in 49ms :: {"success":true,"data":{"chats":[],"pageInfo":{"hasMore":false,"nextCursor":null}}}
+2025-12-19 12:16:13.44
+304e2ede
+User
+[websocket] User 1 connected
+2025-12-19 12:16:13.88
+304e2ede
+User
+2:16:13 AM [express] GET /api/users/online 200 in 1ms :: {"success":true,"data":{"userIds":[1]}}
+2025-12-19 12:16:15.46
+304e2ede
+User
+[emailService] Email sent to mrreveali@gmail.com, job_id: 1vWQ2R-0002Hy-43uP
+2025-12-19 12:16:15.46
+304e2ede
+User
+2:16:15 AM [express] POST /api/auth/send-verification 200 in 534ms :: {"success":true,"data":{"message":"Код отправлен на email"}}
+2025-12-19 12:18:36.10
+304e2ede
+User
+[emailService] Email sent to N_reveal@list.ru, job_id: 1vWQ4i-0002cT-4JVD
+2025-12-19 12:18:36.11
+304e2ede
+User
+2:18:36 AM [express] POST /api/auth/register 201 in 5195ms
+2025-12-19 12:18:36.85
+304e2ede
+User
+2:18:36 AM [express] POST /api/auth/send-verification 200 in 290ms :: {"success":true,"data":{"message":"Код отправлен на email"}}
+2025-12-19 12:18:36.85
+304e2ede
+User
+[emailService] Email sent to n_reveal@list.ru, job_id: 1vWQ4i-0002GG-Amn7
+2025-12-19 12:19:23.50
+304e2ede
+User
+2:19:23 AM [express] POST /api/auth/verify-email 404 in 237ms :: {"success":false,"error":"Пользователь не найден"}
+2025-12-19 12:19:52.13
+304e2ede
+User
+2:19:52 AM [express] POST /api/auth/verify-email 400 in 112ms :: {"success":false,"error":"Неверный или истёкший код"}
