@@ -51,7 +51,7 @@ mediaRouter.put("/media/finalize", authenticateToken, async (req: Request, res: 
       }
     );
 
-    return sendSuccess(res, { objectPath: toFullUrl(objectPath) });
+    return sendSuccess(res, { objectPath });
   } catch (error) {
     console.error("Finalize media error:", error);
     return sendError(res, "Ошибка финализации медиа", 500);
@@ -232,7 +232,7 @@ mediaRouter.post("/upload/complete/:sessionId", authenticateToken, async (req: R
     }
 
     if (session.status === "completed") {
-      return sendSuccess(res, { objectPath: toFullUrl(session.objectPath) });
+      return sendSuccess(res, { objectPath: session.objectPath });
     }
     
     if (session.status === "failed") {
@@ -292,7 +292,7 @@ mediaRouter.post("/upload/complete/:sessionId", authenticateToken, async (req: R
     await storage.completeUploadSession(sessionId, objectPath);
     await cleanupTempDir();
 
-    return sendSuccess(res, { objectPath: toFullUrl(objectPath) });
+    return sendSuccess(res, { objectPath });
   } catch (error) {
     console.error("Complete upload error:", error);
     await storage.markUploadSessionFailed(sessionId);
