@@ -416,34 +416,6 @@ export class ObjectStorageService {
   }
 
   /**
-   * Normalize media URL to relative path
-   * Converts absolute URLs to relative paths for storage
-   * - Absolute URL: https://server.repl.co/objects/uploads/filename -> /objects/uploads/filename
-   * - Relative path: /objects/uploads/filename -> /objects/uploads/filename (unchanged)
-   * - Other URLs: returned as-is
-   */
-  normalizeMediaUrl(mediaUrl: string): string {
-    if (!mediaUrl) return mediaUrl;
-    
-    // Already a relative path - return as-is
-    if (mediaUrl.startsWith('/objects/')) {
-      return mediaUrl;
-    }
-    
-    try {
-      const url = new URL(mediaUrl);
-      const pathMatch = url.pathname.match(/(\/objects\/.+)$/);
-      if (pathMatch && pathMatch[1]) {
-        return pathMatch[1];
-      }
-    } catch {
-      // Not a valid URL, return as-is
-    }
-    
-    return mediaUrl;
-  }
-
-  /**
    * Extract object key from media URL or path
    * Supports both absolute URLs and relative paths:
    * - Absolute URL: https://server.repl.co/objects/uploads/filename

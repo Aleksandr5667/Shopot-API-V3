@@ -36,15 +36,7 @@ usersRouter.put("/profile", authenticateToken, async (req: Request, res: Respons
       return sendError(res, validation.error.errors[0]?.message || "Ошибка валидации");
     }
 
-    // Normalize avatar URL to relative path if provided
-    const profileData = {
-      ...validation.data,
-      avatarUrl: validation.data.avatarUrl 
-        ? objectStorageService.normalizeMediaUrl(validation.data.avatarUrl) 
-        : validation.data.avatarUrl,
-    };
-
-    const user = await storage.updateProfile(req.user!.userId, profileData);
+    const user = await storage.updateProfile(req.user!.userId, validation.data);
     if (!user) {
       return sendError(res, "Пользователь не найден", 404);
     }
