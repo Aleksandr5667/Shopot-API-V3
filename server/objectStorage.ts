@@ -524,63 +524,6 @@ export class ObjectStorageService {
     console.log(`[objectStorage] Successfully uploaded buffer to: ${objectName}`);
     return `/objects/${objectName}`;
   }
-
-  /**
-   * Normalize media URL to relative path
-   * Converts absolute URLs to relative paths for environment-agnostic storage
-   * - https://dev-domain.replit.dev/objects/users/... -> /objects/users/...
-   * - https://prod-domain.replit.app/objects/users/... -> /objects/users/...
-   * - /objects/users/... -> /objects/users/... (already relative)
-   */
-  normalizeMediaUrl(url: string | null | undefined): string | null {
-    if (!url) return null;
-    
-    // Already relative path
-    if (url.startsWith('/objects/')) {
-      return url;
-    }
-    
-    // Convert absolute URL to relative path
-    try {
-      const urlObj = new URL(url);
-      const pathname = urlObj.pathname;
-      if (pathname.startsWith('/objects/')) {
-        return pathname;
-      }
-    } catch {
-      // Not a valid URL, return as-is
-    }
-    
-    return url;
-  }
-
-  /**
-   * Convert relative path to absolute URL for API responses
-   * Uses REPLIT_DEPLOYMENT_URL or constructs from request host
-   */
-  toAbsoluteUrl(relativePath: string | null | undefined, baseUrl?: string): string | null {
-    if (!relativePath) return null;
-    
-    // Already absolute URL
-    if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
-      return relativePath;
-    }
-    
-    // Get base URL from environment or use provided
-    const base = baseUrl || process.env.REPLIT_DEPLOYMENT_URL || process.env.REPLIT_DEV_DOMAIN;
-    if (!base) {
-      return relativePath; // Return as-is if no base URL available
-    }
-    
-    // Ensure base doesn't end with slash and path starts with slash
-    const cleanBase = base.replace(/\/$/, '');
-    const cleanPath = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
-    
-    // Add https:// if not present
-    const fullBase = cleanBase.startsWith('http') ? cleanBase : `https://${cleanBase}`;
-    
-    return `${fullBase}${cleanPath}`;
-  }
 }
 
 function parseObjectPath(path: string): {

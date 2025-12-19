@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { storage } from "../storage/index";
 import { authenticateToken } from "../auth";
 import { insertContactSchema } from "@shared/schema";
-import { sendSuccess, sendError, parseLimit, parseCursor, contactsCursorSchema, getBaseUrl, withAbsoluteUrls } from "./utils";
+import { sendSuccess, sendError, parseLimit, parseCursor, contactsCursorSchema } from "./utils";
 
 export const contactsRouter = Router();
 
@@ -15,9 +15,8 @@ contactsRouter.get("/", authenticateToken, async (req: Request, res: Response) =
     }
     
     const result = await storage.getContactsPaginated(req.user!.userId, limit, cursor);
-    const baseUrl = getBaseUrl(req);
     return sendSuccess(res, { 
-      contacts: withAbsoluteUrls(result.contacts, baseUrl),
+      contacts: result.contacts,
       pageInfo: result.pageInfo
     });
   } catch (error) {

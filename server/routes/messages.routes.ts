@@ -4,7 +4,7 @@ import { authenticateToken } from "../auth";
 import { getWebSocketService } from "../websocket/index";
 import { ObjectStorageService } from "../objectStorage";
 import { insertMessageSchema } from "@shared/schema";
-import { sendSuccess, sendError, parseLimit, parseCursor, messagesCursorSchema, getBaseUrl, withAbsoluteUrls } from "./utils";
+import { sendSuccess, sendError, parseLimit, parseCursor, messagesCursorSchema } from "./utils";
 
 export const messagesRouter = Router();
 
@@ -36,22 +36,14 @@ messagesRouter.post("/", authenticateToken, async (req: Request, res: Response) 
       return sendError(res, "URL медиафайла обязателен");
     }
 
-    // Normalize media URLs to relative paths
-    const messageData = {
-      ...validation.data,
-      mediaUrl: objectStorageService.normalizeMediaUrl(validation.data.mediaUrl),
-      thumbnailUrl: objectStorageService.normalizeMediaUrl(validation.data.thumbnailUrl),
-    };
-
-    const message = await storage.createMessage(chatId, req.user!.userId, messageData);
+    const message = await storage.createMessage(chatId, req.user!.userId, validation.data);
     
     const wsService = getWebSocketService();
     if (wsService) {
-      wsService.notifyNewMessage(withAbsoluteUrls(message, getBaseUrl(req)));
+      wsService.notifyNewMessage(message);
     }
     
-    const baseUrl = getBaseUrl(req);
-    return sendSuccess(res, { message: withAbsoluteUrls(message, baseUrl) }, 201);
+    return sendSuccess(res, { message }, 201);
   } catch (error) {
     console.error("Send message error:", error);
     return sendError(res, "Ошибка сервера", 500);
@@ -192,9 +184,8 @@ messagesRouter.get("/search", authenticateToken, async (req: Request, res: Respo
     }
 
     const result = await storage.searchMessagesPaginated(req.user!.userId, query, limit, cursor);
-    const baseUrl = getBaseUrl(req);
     return sendSuccess(res, { 
-      messages: withAbsoluteUrls(result.messages, baseUrl),
+      messages: result.messages,
       pageInfo: result.pageInfo
     });
   } catch (error) {

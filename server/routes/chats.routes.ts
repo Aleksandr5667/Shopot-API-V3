@@ -4,7 +4,7 @@ import { authenticateToken } from "../auth";
 import { getWebSocketService } from "../websocket/index";
 import { ObjectStorageService } from "../objectStorage";
 import { insertChatSchema } from "@shared/schema";
-import { sendSuccess, sendError, parseLimit, parseCursor, chatsCursorSchema, getBaseUrl, withAbsoluteUrls } from "./utils";
+import { sendSuccess, sendError, parseLimit, parseCursor, chatsCursorSchema } from "./utils";
 
 export const chatsRouter = Router();
 
@@ -19,9 +19,8 @@ chatsRouter.get("/", authenticateToken, async (req: Request, res: Response) => {
     }
     
     const result = await storage.getChatsForUserPaginated(req.user!.userId, limit, cursor);
-    const baseUrl = getBaseUrl(req);
     return sendSuccess(res, { 
-      chats: withAbsoluteUrls(result.chats, baseUrl),
+      chats: result.chats,
       pageInfo: result.pageInfo
     });
   } catch (error) {
@@ -94,8 +93,7 @@ chatsRouter.get("/:id/messages", authenticateToken, async (req: Request, res: Re
     }
 
     const messages = await storage.getChatMessages(chatId, limit, before);
-    const baseUrl = getBaseUrl(req);
-    return sendSuccess(res, { messages: withAbsoluteUrls(messages, baseUrl) });
+    return sendSuccess(res, { messages });
   } catch (error) {
     console.error("Get messages error:", error);
     return sendError(res, "Ошибка сервера", 500);
@@ -155,8 +153,7 @@ chatsRouter.get("/:id/details", authenticateToken, async (req: Request, res: Res
       return sendError(res, "Чат не найден", 404);
     }
 
-    const baseUrl = getBaseUrl(req);
-    return sendSuccess(res, { chat: withAbsoluteUrls(chatWithMembers, baseUrl) });
+    return sendSuccess(res, { chat: chatWithMembers });
   } catch (error) {
     console.error("Get chat details error:", error);
     return sendError(res, "Ошибка сервера", 500);
