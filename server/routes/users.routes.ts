@@ -4,7 +4,7 @@ import { authenticateToken } from "../auth";
 import { getWebSocketService } from "../websocket/index";
 import { ObjectStorageService } from "../objectStorage";
 import { updateProfileSchema } from "@shared/schema";
-import { sendSuccess, sendError } from "./utils";
+import { sendSuccess, sendError, getBaseUrl, withAbsoluteUrls } from "./utils";
 import { searchLimiter } from "./limiters";
 
 export const usersRouter = Router();
@@ -22,7 +22,8 @@ usersRouter.get("/search", authenticateToken, searchLimiter, async (req: Request
 
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
     const users = await storage.searchUsersByEmail(term, req.user!.userId, limit);
-    return sendSuccess(res, { users });
+    const baseUrl = getBaseUrl(req);
+    return sendSuccess(res, { users: withAbsoluteUrls(users, baseUrl) });
   } catch (error) {
     console.error("Search users error:", error);
     return sendError(res, "Ошибка сервера", 500);
@@ -49,7 +50,8 @@ usersRouter.put("/profile", authenticateToken, async (req: Request, res: Respons
       return sendError(res, "Пользователь не найден", 404);
     }
 
-    return sendSuccess(res, { user });
+    const baseUrl = getBaseUrl(req);
+    return sendSuccess(res, { user: withAbsoluteUrls(user, baseUrl) });
   } catch (error) {
     console.error("Update profile error:", error);
     return sendError(res, "Ошибка сервера", 500);

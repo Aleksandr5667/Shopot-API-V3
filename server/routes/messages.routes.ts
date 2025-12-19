@@ -4,7 +4,7 @@ import { authenticateToken } from "../auth";
 import { getWebSocketService } from "../websocket/index";
 import { ObjectStorageService } from "../objectStorage";
 import { insertMessageSchema } from "@shared/schema";
-import { sendSuccess, sendError, parseLimit, parseCursor, messagesCursorSchema } from "./utils";
+import { sendSuccess, sendError, parseLimit, parseCursor, messagesCursorSchema, getBaseUrl, withAbsoluteUrls } from "./utils";
 
 export const messagesRouter = Router();
 
@@ -47,10 +47,11 @@ messagesRouter.post("/", authenticateToken, async (req: Request, res: Response) 
     
     const wsService = getWebSocketService();
     if (wsService) {
-      wsService.notifyNewMessage(message);
+      wsService.notifyNewMessage(withAbsoluteUrls(message, getBaseUrl(req)));
     }
     
-    return sendSuccess(res, { message }, 201);
+    const baseUrl = getBaseUrl(req);
+    return sendSuccess(res, { message: withAbsoluteUrls(message, baseUrl) }, 201);
   } catch (error) {
     console.error("Send message error:", error);
     return sendError(res, "Ошибка сервера", 500);
@@ -191,8 +192,9 @@ messagesRouter.get("/search", authenticateToken, async (req: Request, res: Respo
     }
 
     const result = await storage.searchMessagesPaginated(req.user!.userId, query, limit, cursor);
+    const baseUrl = getBaseUrl(req);
     return sendSuccess(res, { 
-      messages: result.messages,
+      messages: withAbsoluteUrls(result.messages, baseUrl),
       pageInfo: result.pageInfo
     });
   } catch (error) {

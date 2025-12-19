@@ -553,6 +553,34 @@ export class ObjectStorageService {
     
     return url;
   }
+
+  /**
+   * Convert relative path to absolute URL for API responses
+   * Uses REPLIT_DEPLOYMENT_URL or constructs from request host
+   */
+  toAbsoluteUrl(relativePath: string | null | undefined, baseUrl?: string): string | null {
+    if (!relativePath) return null;
+    
+    // Already absolute URL
+    if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+      return relativePath;
+    }
+    
+    // Get base URL from environment or use provided
+    const base = baseUrl || process.env.REPLIT_DEPLOYMENT_URL || process.env.REPLIT_DEV_DOMAIN;
+    if (!base) {
+      return relativePath; // Return as-is if no base URL available
+    }
+    
+    // Ensure base doesn't end with slash and path starts with slash
+    const cleanBase = base.replace(/\/$/, '');
+    const cleanPath = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+    
+    // Add https:// if not present
+    const fullBase = cleanBase.startsWith('http') ? cleanBase : `https://${cleanBase}`;
+    
+    return `${fullBase}${cleanPath}`;
+  }
 }
 
 function parseObjectPath(path: string): {

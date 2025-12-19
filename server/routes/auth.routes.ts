@@ -5,7 +5,7 @@ import { storage } from "../storage/index";
 import { authenticateToken, generateToken } from "../auth";
 import { generateVerificationCode, sendVerificationEmail, sendPasswordResetEmail } from "../emailService";
 import { insertUserSchema, loginSchema } from "@shared/schema";
-import { sendSuccess, sendError } from "./utils";
+import { sendSuccess, sendError, getBaseUrl, withAbsoluteUrls } from "./utils";
 import { authLimiter, emailLimiter } from "./limiters";
 
 export const authRouter = Router();
@@ -104,7 +104,8 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     const token = generateToken({ userId: user.id, email: user.email });
     const { passwordHash, ...publicUser } = user;
 
-    return sendSuccess(res, { user: publicUser, token });
+    const baseUrl = getBaseUrl(req);
+    return sendSuccess(res, { user: withAbsoluteUrls(publicUser, baseUrl), token });
   } catch (error) {
     console.error("Login error:", error);
     return sendError(res, "Ошибка сервера", 500);
@@ -119,7 +120,8 @@ authRouter.get("/me", authenticateToken, async (req: Request, res: Response) => 
     }
 
     await storage.updateLastSeen(req.user!.userId);
-    return sendSuccess(res, { user });
+    const baseUrl = getBaseUrl(req);
+    return sendSuccess(res, { user: withAbsoluteUrls(user, baseUrl) });
   } catch (error) {
     console.error("Get me error:", error);
     return sendError(res, "Ошибка сервера", 500);
