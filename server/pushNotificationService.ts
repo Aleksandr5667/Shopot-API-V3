@@ -7,6 +7,9 @@ interface ExpoPushMessage {
   body: string;
   data?: Record<string, string>;
   badge?: number;
+  priority?: 'default' | 'normal' | 'high';
+  channelId?: string;
+  _displayInForeground?: boolean;
 }
 
 interface ExpoPushTicket {
@@ -50,6 +53,9 @@ export class PushNotificationService {
           type: 'new_message',
         },
         badge: unreadCount,
+        priority: 'high',
+        channelId: 'default',
+        _displayInForeground: true,
       };
 
       const result = await this.sendPushNotification(message);
