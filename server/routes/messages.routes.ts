@@ -17,7 +17,7 @@ messagesRouter.post("/", authenticateToken, async (req: Request, res: Response) 
       return sendError(res, validation.error.errors[0]?.message || "Ошибка валидации");
     }
 
-    const { chatId, content, type, mediaUrl } = validation.data;
+    const { chatId, content, type, mediaUrl, thumbnailUrl } = validation.data;
 
     if (!chatId) {
       return sendError(res, "chatId обязателен");
@@ -36,7 +36,14 @@ messagesRouter.post("/", authenticateToken, async (req: Request, res: Response) 
       return sendError(res, "URL медиафайла обязателен");
     }
 
-    const message = await storage.createMessage(chatId, req.user!.userId, validation.data);
+    // Normalize media URLs to relative paths (remove domain prefix)
+    const normalizedData = {
+      ...validation.data,
+      mediaUrl: mediaUrl ? objectStorageService.normalizeMediaUrl(mediaUrl) : mediaUrl,
+      thumbnailUrl: thumbnailUrl ? objectStorageService.normalizeMediaUrl(thumbnailUrl) : thumbnailUrl,
+    };
+
+    const message = await storage.createMessage(chatId, req.user!.userId, normalizedData);
     
     const wsService = getWebSocketService();
     if (wsService) {

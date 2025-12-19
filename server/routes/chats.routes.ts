@@ -484,7 +484,9 @@ chatsRouter.post("/:id/avatar", authenticateToken, async (req: Request, res: Res
       return sendError(res, "avatarUrl обязателен");
     }
 
-    const updated = await storage.updateChatAvatar(chatId, avatarUrl);
+    // Normalize avatar URL to relative path
+    const normalizedAvatarUrl = objectStorageService.normalizeMediaUrl(avatarUrl);
+    const updated = await storage.updateChatAvatar(chatId, normalizedAvatarUrl);
     if (!updated) {
       return sendError(res, "Ошибка обновления", 500);
     }
