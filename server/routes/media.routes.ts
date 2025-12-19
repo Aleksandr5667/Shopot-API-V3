@@ -58,6 +58,9 @@ mediaRouter.put("/media/finalize", authenticateToken, async (req: Request, res: 
 });
 
 const MAX_FILE_SIZE = 150 * 1024 * 1024; // 150 MB
+const MIN_VOICE_FILE_SIZE = 1024; // 1 KB - минимальный размер голосового сообщения
+const MIN_IMAGE_FILE_SIZE = 100; // 100 bytes - минимальный размер изображения
+const MIN_VIDEO_FILE_SIZE = 1024; // 1 KB - минимальный размер видео
 
 const initUploadSchemaWithValidation = z.object({
   filename: z.string().min(1, "Имя файла обязательно"),
@@ -71,6 +74,19 @@ mediaRouter.post("/upload/init", authenticateToken, async (req: Request, res: Re
     const validation = initUploadSchemaWithValidation.safeParse(req.body);
     if (!validation.success) {
       return sendError(res, validation.error.errors[0]?.message || "Ошибка валидации");
+    }
+
+    const { fileSize, category } = validation.data;
+
+    // Проверка минимального размера для медиа-файлов
+    if (category === "voice" && fileSize < MIN_VOICE_FILE_SIZE) {
+      return sendError(res, `Голосовое сообщение слишком короткое (минимум ${MIN_VOICE_FILE_SIZE} байт)`);
+    }
+    if (category === "images" && fileSize < MIN_IMAGE_FILE_SIZE) {
+      return sendError(res, "Изображение повреждено или слишком маленькое");
+    }
+    if (category === "videos" && fileSize < MIN_VIDEO_FILE_SIZE) {
+      return sendError(res, "Видео повреждено или слишком маленькое");
     }
 
     const session = await storage.createUploadSession(req.user!.userId, validation.data);
@@ -268,6 +284,31 @@ mediaRouter.post("/upload/complete/:sessionId", authenticateToken, async (req: R
     }
     
     const fileBuffer = Buffer.concat(chunks);
+
+    // Валидация итогового размера файла
+    if (fileBuffer.length !== session.fileSize) {
+      console.error(`[upload/complete] File size mismatch: expected ${session.fileSize}, got ${fileBuffer.length}`);
+      await storage.markUploadSessionFailed(sessionId);
+      await cleanupTempDir();
+      return sendError(res, `Размер файла не совпадает: ожидалось ${session.fileSize} байт, получено ${fileBuffer.length}`, 400);
+    }
+
+    // Дополнительная валидация для медиа-файлов
+    const category = session.category;
+    if (category === "voice" && fileBuffer.length < MIN_VOICE_FILE_SIZE) {
+      console.error(`[upload/complete] Voice file too small: ${fileBuffer.length} bytes`);
+      await storage.markUploadSessionFailed(sessionId);
+      await cleanupTempDir();
+      return sendError(res, "Голосовое сообщение повреждено или слишком короткое", 400);
+    }
+
+    // Проверка что аудио-файл содержит больше чем только заголовок (ftyp box = ~28-32 байт)
+    if (category === "voice" && fileBuffer.length < 100) {
+      console.error(`[upload/complete] Voice file appears truncated: ${fileBuffer.length} bytes (only header)`);
+      await storage.markUploadSessionFailed(sessionId);
+      await cleanupTempDir();
+      return sendError(res, "Голосовое сообщение повреждено (файл обрезан)", 400);
+    }
 
     const user = await storage.getUserById(req.user!.userId);
     const userEmail = user?.email;
