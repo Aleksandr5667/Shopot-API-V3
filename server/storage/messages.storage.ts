@@ -6,6 +6,7 @@ import {
 import { db } from "../db";
 import { eq, and, or, desc, lt, ilike, inArray, not, sql } from "drizzle-orm";
 import { getUserById } from "./users.storage";
+import { transformMessageUrls } from "./utils";
 
 export async function getReplyToMessage(messageId: number, chatId: number): Promise<ReplyToMessage | null> {
   const [message] = await db.select().from(messages).where(eq(messages.id, messageId));
@@ -98,7 +99,7 @@ export async function createMessage(chatId: number, senderId: number, data: Inse
     replyToMessage = await getReplyToMessage(message.replyToId, chatId);
   }
 
-  return { ...message, sender: sender!, replyToMessage, deliveredTo: [senderId] };
+  return transformMessageUrls({ ...message, sender: sender!, replyToMessage, deliveredTo: [senderId] });
 }
 
 export async function createSystemMessage(chatId: number, content: string): Promise<Message> {
@@ -140,7 +141,7 @@ export async function createSystemMessage(chatId: number, content: string): Prom
     })
     .returning();
 
-  return message;
+  return transformMessageUrls(message);
 }
 
 export async function getChatMessages(chatId: number, limit: number = 50, before?: Date): Promise<MessageWithReply[]> {
@@ -166,7 +167,7 @@ export async function getChatMessages(chatId: number, limit: number = 50, before
         replyToMessage = await getReplyToMessage(message.replyToId, chatId);
       }
       const deliveredTo = await getMessageDeliveredTo(message.id);
-      result.push({ ...message, sender, replyToMessage, deliveredTo });
+      result.push(transformMessageUrls({ ...message, sender, replyToMessage, deliveredTo }));
     }
   }
 
@@ -175,7 +176,7 @@ export async function getChatMessages(chatId: number, limit: number = 50, before
 
 export async function getMessageById(messageId: number): Promise<Message | undefined> {
   const [message] = await db.select().from(messages).where(eq(messages.id, messageId));
-  return message || undefined;
+  return message ? transformMessageUrls(message) : undefined;
 }
 
 export async function updateMessage(messageId: number, content: string): Promise<Message | undefined> {
@@ -187,7 +188,7 @@ export async function updateMessage(messageId: number, content: string): Promise
     })
     .where(eq(messages.id, messageId))
     .returning();
-  return updated || undefined;
+  return updated ? transformMessageUrls(updated) : undefined;
 }
 
 export async function deleteMessage(messageId: number): Promise<boolean> {
@@ -242,11 +243,11 @@ export async function searchMessages(userId: number, query: string): Promise<(Me
     const sender = await getUserById(message.senderId);
     const [chat] = await db.select().from(chats).where(eq(chats.id, message.chatId));
     if (sender) {
-      result.push({
+      result.push(transformMessageUrls({
         ...message,
         sender,
         chatName: chat?.name || undefined,
-      });
+      }));
     }
   }
 
@@ -294,11 +295,11 @@ export async function searchMessagesPaginated(userId: number, query: string, lim
     const sender = await getUserById(message.senderId);
     const [chat] = await db.select().from(chats).where(eq(chats.id, message.chatId));
     if (sender) {
-      result.push({
+      result.push(transformMessageUrls({
         ...message,
         sender,
         chatName: chat?.name || undefined,
-      });
+      }));
     }
   }
 

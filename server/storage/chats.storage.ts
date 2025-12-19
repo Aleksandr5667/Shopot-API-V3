@@ -6,6 +6,7 @@ import {
 import { db } from "../db";
 import { eq, and, or, desc, lt, inArray, not, sql } from "drizzle-orm";
 import { getUserById } from "./users.storage";
+import { transformChatUrls, transformMessageUrls } from "./utils";
 
 export async function getUnreadCount(chatId: number, userId: number): Promise<number> {
   const result = await db
@@ -45,7 +46,7 @@ export async function createChat(
     });
   }
 
-  return chat;
+  return transformChatUrls(chat);
 }
 
 export async function getChatsForUser(userId: number): Promise<(Chat & { lastMessage?: Message; members: UserPublic[]; unreadCount: number })[]> {
@@ -82,8 +83,8 @@ export async function getChatsForUser(userId: number): Promise<(Chat & { lastMes
     const unreadCount = await getUnreadCount(chat.id, userId);
 
     result.push({
-      ...chat,
-      lastMessage: lastMessage || undefined,
+      ...transformChatUrls(chat),
+      lastMessage: lastMessage ? transformMessageUrls(lastMessage) : undefined,
       members: memberUsers,
       unreadCount,
     });
@@ -154,8 +155,8 @@ export async function getChatsForUserPaginated(userId: number, limit: number, cu
     const unreadCount = await getUnreadCount(chat.id, userId);
 
     result.push({
-      ...chat,
-      lastMessage: lastMessage || undefined,
+      ...transformChatUrls(chat),
+      lastMessage: lastMessage ? transformMessageUrls(lastMessage) : undefined,
       members: memberUsers,
       unreadCount,
     });
@@ -185,7 +186,7 @@ export async function getChatById(chatId: number, userId: number): Promise<Chat 
   if (!member) return undefined;
 
   const [chat] = await db.select().from(chats).where(eq(chats.id, chatId));
-  return chat || undefined;
+  return chat ? transformChatUrls(chat) : undefined;
 }
 
 export async function getChatWithMembers(chatId: number, userId: number): Promise<ChatWithMembers | undefined> {
@@ -213,7 +214,7 @@ export async function getChatWithMembers(chatId: number, userId: number): Promis
   }
 
   return {
-    ...chat,
+    ...transformChatUrls(chat),
     members: membersWithUsers,
     memberCount: membersWithUsers.length
   };
@@ -225,7 +226,7 @@ export async function updateChat(chatId: number, data: { name?: string; descript
     .set(data)
     .where(eq(chats.id, chatId))
     .returning();
-  return updated || undefined;
+  return updated ? transformChatUrls(updated) : undefined;
 }
 
 export async function updateChatAvatar(chatId: number, avatarUrl: string): Promise<Chat | undefined> {
@@ -234,7 +235,7 @@ export async function updateChatAvatar(chatId: number, avatarUrl: string): Promi
     .set({ avatarUrl })
     .where(eq(chats.id, chatId))
     .returning();
-  return updated || undefined;
+  return updated ? transformChatUrls(updated) : undefined;
 }
 
 export async function findPrivateChat(userId1: number, userId2: number): Promise<Chat | undefined> {
@@ -268,7 +269,7 @@ export async function findPrivateChat(userId1: number, userId2: number): Promise
         .where(eq(chatMembers.chatId, chatId));
 
       if (members.length === 2) {
-        return chat;
+        return transformChatUrls(chat);
       }
     }
   }
