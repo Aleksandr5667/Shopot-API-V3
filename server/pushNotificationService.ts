@@ -44,7 +44,7 @@ export class PushNotificationService {
 
       const message: ExpoPushMessage = {
         to: pushToken,
-        sound: 'notification',
+        sound: 'notification.wav',
         title: senderName,
         body: messageText,
         data: {
